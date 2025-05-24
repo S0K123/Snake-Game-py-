@@ -1,0 +1,130 @@
+import pygame
+import random
+import sys
+import os
+
+# Initialize pygame
+pygame.init()
+
+# Game Constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+SPACESHIP_WIDTH = 50
+SPACESHIP_HEIGHT = 50
+OBSTACLE_WIDTH = 50
+OBSTACLE_HEIGHT = 50
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+
+# Set up the screen
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Space Invaders")
+
+# Load assets with fallback
+def load_image(path, fallback_color, size):
+    if os.path.exists(path):
+        img = pygame.image.load(path).convert_alpha()
+        return pygame.transform.scale(img, size)
+    else:
+        surf = pygame.Surface(size)
+        surf.fill(fallback_color)
+        return surf
+
+# Load images
+background = load_image("background.png", WHITE, (SCREEN_WIDTH, SCREEN_HEIGHT))
+spaceship_img = load_image("spaceship.png", GREEN, (SPACESHIP_WIDTH, SPACESHIP_HEIGHT))
+
+# Fonts
+font = pygame.font.SysFont('Arial', 30)
+
+# Spaceship class
+class Spaceship:
+    def __init__(self):
+        self.rect = pygame.Rect(
+            SCREEN_WIDTH // 2 - SPACESHIP_WIDTH // 2,
+            SCREEN_HEIGHT - SPACESHIP_HEIGHT - 10,
+            SPACESHIP_WIDTH,
+            SPACESHIP_HEIGHT
+        )
+        self.speed = 5
+
+    def move(self, keys):
+        if keys[pygame.K_LEFT] and self.rect.x > 0:
+            self.rect.x -= self.speed
+        if keys[pygame.K_RIGHT] and self.rect.x < SCREEN_WIDTH - SPACESHIP_WIDTH:
+            self.rect.x += self.speed
+
+# Obstacle class
+class Obstacle:
+    def __init__(self):
+        self.rect = pygame.Rect(
+            random.randint(0, SCREEN_WIDTH - OBSTACLE_WIDTH),
+            -OBSTACLE_HEIGHT,
+            OBSTACLE_WIDTH,
+            OBSTACLE_HEIGHT
+        )
+        self.speed = random.randint(2, 4)
+
+    def move(self):
+        self.rect.y += self.speed
+
+    def reset_position(self):
+        self.rect.y = -OBSTACLE_HEIGHT
+        self.rect.x = random.randint(0, SCREEN_WIDTH - OBSTACLE_WIDTH)
+
+# Main game loop
+def game_loop():
+    spaceship = Spaceship()
+    obstacles = [Obstacle() for _ in range(5)]
+    score = 0
+    clock = pygame.time.Clock()
+    running = True
+
+    while running:
+        screen.blit(background, (0, 0))
+
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        # Key inputs
+        keys = pygame.key.get_pressed()
+        spaceship.move(keys)
+
+        # Move and draw obstacles
+        for obstacle in obstacles:
+            obstacle.move()
+            pygame.draw.rect(screen, RED, obstacle.rect)
+
+            # Collision detection
+            if obstacle.rect.colliderect(spaceship.rect):
+                running = False
+            elif obstacle.rect.y > SCREEN_HEIGHT:
+                obstacle.reset_position()
+                score += 1
+
+        # Draw spaceship
+        screen.blit(spaceship_img, spaceship.rect.topleft)
+
+        # Display score
+        score_text = font.render(f"Score: {score}", True, GREEN)
+        screen.blit(score_text, (10, 10))
+
+        pygame.display.update()
+        clock.tick(60)
+
+    # Game over message
+    screen.blit(background, (0, 0))
+    game_over_text = font.render("GAME OVER", True, RED)
+    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 30))
+    pygame.display.update()
+    pygame.time.wait(2000)
+    pygame.quit()
+    sys.exit()
+
+# Run the game loop
+game_loop()
+
